@@ -1,15 +1,11 @@
 import 'package:client/screens/admin/admin_complaints.dart';
-
 import 'package:client/screens/admin/approval.dart';
-import 'package:client/screens/admin/widget/issue_card.dart';
-import 'package:client/screens/admin/widget/quick_button.dart';
+import 'package:client/screens/admin/components/home_components.dart';
 import 'package:client/screens/hosteller/ComplaintDetails/complaint_details.dart';
-// import 'package:client/theme/theme.dart';
+import 'package:client/services/api.dart';
+import 'package:client/theme/app_colors.dart';
 import 'package:client/util/user_storage.dart';
-
 import 'package:flutter/material.dart';
-import 'package:client/screens/admin/widget/card_box.dart';
-import 'package:client/services/api.dart ';
 
 class AdminHome extends StatefulWidget {
   const AdminHome({super.key});
@@ -23,8 +19,8 @@ class _AdminHomeState extends State<AdminHome> {
   bool isAdminLoading = true;
   bool isComplaintsLoading = true;
   List<dynamic> _complaints = [];
+  String _selectedBlock = 'Block B';
 
-  // track the selected tab so we can style the bar correctly
   int getCount(String status) {
     int count = 0;
     for (final complaint in _complaints) {
@@ -41,7 +37,6 @@ class _AdminHomeState extends State<AdminHome> {
         builder: (ctx) => ComplaintDetails(complaint: complaint),
       ),
     );
-    print(response);
     if (response == true) {
       fetchComplaints();
     }
@@ -50,7 +45,6 @@ class _AdminHomeState extends State<AdminHome> {
   @override
   void initState() {
     super.initState();
-
     fetchAdmin();
     fetchComplaints();
   }
@@ -72,9 +66,16 @@ class _AdminHomeState extends State<AdminHome> {
     });
   }
 
+  void _cycleBlockFilter() {
+    final blocks = ['Block B', 'Block A', 'All Blocks'];
+    final currentIndex = blocks.indexOf(_selectedBlock);
+    setState(() {
+      _selectedBlock = blocks[(currentIndex + 1) % blocks.length];
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
-    const spacing = 12.0; // SizedBox width between cards
     final topComplaints =
         _complaints
             .where((c) => c['type'] == "public" && c['status'] == "pending")
@@ -84,145 +85,71 @@ class _AdminHomeState extends State<AdminHome> {
             int votesB = (b['upvotes'] as List?)?.length ?? 0;
             return votesB.compareTo(votesA);
           });
+
     return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.surfaceContainerLowest,
+      backgroundColor: AppColors.surface,
+      appBar: AdminHomeAppBar(admin: admin),
       body: SafeArea(
+        top: false,
         child: (isAdminLoading || isComplaintsLoading)
-            ? Center(child: CircularProgressIndicator())
+            ? const Center(
+                child: CircularProgressIndicator(color: AppColors.primary),
+              )
             : SingleChildScrollView(
-                child: Container(
-                  margin: EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.surfaceContainerLowest,
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: SafeArea(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Text(
-                              'Welcome',
-                              style: TextStyle(
-                                fontSize: 24,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            SizedBox(width: 7),
-                            Text(
-                              '${admin?['name']}',
-                              style: TextStyle(
-                                fontSize: 24,
-                                color: Colors.orange[700],
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        ),
-                        SizedBox(height: 20),
-                        // Cards Section
-                        Row(
-                          children: [
-                            CardBox(
-                              title: 'Total Issues',
-                              count: _complaints.length,
-                            ),
-                            SizedBox(width: spacing),
-                            CardBox(
-                              title: 'In progress',
-                              count: getCount('in progress'),
-                            ),
-                          ],
-                        ),
-                        SizedBox(height: 20),
-                        Row(
-                          children: [
-                            CardBox(
-                              title: 'Resolved',
-                              count: getCount('resolved'),
-                            ),
-                            SizedBox(width: 10),
-                            CardBox(
-                              title: 'Pending',
-                              count: getCount('pending'),
-                            ),
-                          ],
-                        ),
-                        SizedBox(height: 20),
-                        Text(
-                          'Highest Priority Complaints',
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                          ),
-                          textAlign: TextAlign.left,
-                        ),
-
-                        //Urgent Issues List
-                        ListView.builder(
-                          itemBuilder: (context, index) {
-                            var complaint = topComplaints[index];
-
-                            return IssueCard(
-                              complaint: complaint,
-                              onTap: () {
-                                toComplaintDetails(complaint);
-                              },
-                            );
-                          },
-                          itemCount: isComplaintsLoading
-                              ? 0
-                              : topComplaints.length,
-                          shrinkWrap: true,
-
-                          physics: NeverScrollableScrollPhysics(),
-                        ),
-                        SizedBox(height: 10),
-                        const Divider(thickness: 1, color: Colors.grey),
-                        QuickButton(
-                          title: 'View All Complaints',
-                          icon: Icons.list_sharp,
-                          onTap: () async {
-                            final response = await Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (ctx) => AdminComplaint(),
-                              ),
-                            );
-                            if (response == true) {
-                              fetchComplaints();
-                            }
-                          },
-                        ),
-                        QuickButton(
-                          title: 'Approve Request',
-                          icon: Icons.person_add_alt,
-                          onTap: () {
-                            Navigator.of(context).push(
-                              MaterialPageRoute(builder: (ctx) => Approval()),
-                            );
-                          },
-                        ),
-                        // QuickButton(
-                        //   title: 'Send Announcement',
-                        //   icon: Icons.send_outlined,
-                        //   onTap: () {},
-                        // ),
-                        // QuickButton(
-                        //   title: 'Insights',
-                        //   icon: Icons.insights_outlined,
-                        //   onTap: () {
-                        //     Navigator.of(context).push(
-                        //       MaterialPageRoute(
-                        //         builder: (ctx) => AdminInsights(),
-                        //       ),
-                        //     );
-                        //   },
-                        // ),
-                        const Divider(thickness: 1, color: Colors.grey),
-                      ],
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Operational Status Eyebrow, Welcome Hero & Block Filter
+                    AdminHeroHeader(
+                      adminName: admin?['name']?.toString() ?? 'Chief Warden',
+                      selectedBlock: _selectedBlock,
+                      onCycleBlock: _cycleBlockFilter,
                     ),
-                  ),
+                    const SizedBox(height: 14),
+
+                    // 2x2 Metric KPI Grid
+                    AdminKpiGrid(
+                      totalIssues: _complaints.length,
+                      inProgressCount: getCount('in progress'),
+                      resolvedCount: getCount('resolved'),
+                      pendingCount: getCount('pending'),
+                      onComplaintsUpdated: fetchComplaints,
+                    ),
+                    const SizedBox(height: 22),
+
+                    // Priority Grievances Feed Section
+                    PriorityGrievancesSection(
+                      complaints: topComplaints,
+                      onComplaintTap: toComplaintDetails,
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Quick Administrative Actions & Broadcast Button
+                    AdminQuickActions(
+                      totalComplaints: _complaints.length,
+                      onViewAllComplaints: () async {
+                        final response = await Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (ctx) => AdminComplaint(),
+                          ),
+                        );
+                        if (response == true) {
+                          fetchComplaints();
+                        }
+                      },
+                      onApproveRequests: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(builder: (ctx) => Approval()),
+                        );
+                      },
+                    ),
+
+                    // Emergency Duty Notice Card
+                    // const EmergencyDutyCard(),
+                    const SizedBox(height: 16),
+                  ],
                 ),
               ),
       ),
