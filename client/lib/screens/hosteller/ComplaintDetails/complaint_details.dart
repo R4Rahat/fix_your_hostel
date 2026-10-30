@@ -1,17 +1,13 @@
-// ignore_for_file: no_leading_underscores_for_local_identifiers
-
 import 'dart:async';
-import 'package:client/screens/hosteller/ComplaintDetails/delete_dialog.dart';
-import 'package:client/screens/hosteller/ComplaintDetails/down_vote_button.dart';
-import 'package:client/screens/hosteller/ComplaintDetails/pop_menu.dart';
-import 'package:client/screens/hosteller/ComplaintDetails/up_vote_button.dart';
-import 'package:client/screens/hosteller/ComplaintDetails/vote_count.dart';
+import 'package:client/screens/hosteller/ComplaintDetails/components/complaint_app_bar.dart';
+import 'package:client/screens/hosteller/ComplaintDetails/components/private_complaint_view.dart';
+import 'package:client/screens/hosteller/ComplaintDetails/components/public_complaint_view.dart';
 import 'package:client/services/api.dart';
 import 'package:client/services/votes.dart';
-import 'package:client/theme/theme.dart';
+import 'package:client/theme/app_colors.dart';
 import 'package:client/util/user_storage.dart';
 import 'package:flutter/material.dart';
-//import 'package:client/services/api.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class ComplaintDetails extends StatefulWidget {
   const ComplaintDetails({super.key, required this.complaint});
@@ -32,16 +28,15 @@ class _ComplaintDetailsState extends State<ComplaintDetails> {
 
   bool hasUpdated = false;
   int upvoteCount = 0;
-
   int downvoteCount = 0;
   Map<String, dynamic>? votes;
   late TextEditingController _remarksController;
 
   @override
   void initState() {
+    super.initState();
     _remarksController = TextEditingController();
     fetchUser();
-    super.initState();
   }
 
   @override
@@ -70,11 +65,11 @@ class _ComplaintDetailsState extends State<ComplaintDetails> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            response["message"],
+            response["message"] ?? 'Complaint deleted',
             textAlign: TextAlign.center,
-            style: const TextStyle(color: Colors.white70, fontSize: 16),
+            style: GoogleFonts.plusJakartaSans(color: Colors.white, fontSize: 14),
           ),
-          backgroundColor: Theme.of(context).colorScheme.surfaceContainerHigh,
+          backgroundColor: AppColors.surfaceContainerHigh,
         ),
       );
     } else {
@@ -82,11 +77,11 @@ class _ComplaintDetailsState extends State<ComplaintDetails> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            response['message'] ?? "Error occured",
+            response['message'] ?? "Error occurred",
             textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.white70, fontSize: 15),
+            style: GoogleFonts.plusJakartaSans(color: Colors.white, fontSize: 14),
           ),
-          backgroundColor: Theme.of(context).colorScheme.surfaceContainerHigh,
+          backgroundColor: AppColors.surfaceContainerHigh,
         ),
       );
     }
@@ -103,11 +98,11 @@ class _ComplaintDetailsState extends State<ComplaintDetails> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            response["message"],
+            response["message"] ?? 'Complaint deleted',
             textAlign: TextAlign.center,
-            style: const TextStyle(color: Colors.white70, fontSize: 16),
+            style: GoogleFonts.plusJakartaSans(color: Colors.white, fontSize: 14),
           ),
-          backgroundColor: Theme.of(context).colorScheme.surfaceContainerHigh,
+          backgroundColor: AppColors.surfaceContainerHigh,
         ),
       );
     } else {
@@ -115,49 +110,60 @@ class _ComplaintDetailsState extends State<ComplaintDetails> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            response['message'] ?? "Error occured",
+            response['message'] ?? "Error occurred",
             textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.white70, fontSize: 15),
+            style: GoogleFonts.plusJakartaSans(color: Colors.white, fontSize: 14),
           ),
-          backgroundColor: Theme.of(context).colorScheme.surfaceContainerHigh,
+          backgroundColor: AppColors.surfaceContainerHigh,
         ),
       );
     }
   }
 
   void patchRemarks(String remarks, String id) async {
+    if (remarks.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Please enter remarks before submitting',
+            style: GoogleFonts.plusJakartaSans(color: Colors.white),
+          ),
+          backgroundColor: AppColors.surfaceContainerHigh,
+        ),
+      );
+      return;
+    }
+
     Api api = Api();
     final response = await api.editRemarks(remarks, id);
+    if (!mounted) return;
     if (response['success'] == true || response['success'] == "true") {
       setState(() {
         widget.complaint['adminRemarks'] = remarks;
-      });
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).clearSnackBars();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            response['message'] ?? "Remark added",
-            textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.white70, fontSize: 15),
-          ),
-          backgroundColor: Theme.of(context).colorScheme.surfaceContainerHigh,
-        ),
-      );
-      setState(() {
         hasUpdated = true;
       });
-    } else {
-      if (!mounted) return;
+      _remarksController.clear();
       ScaffoldMessenger.of(context).clearSnackBars();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            response['message'] ?? "error occured",
+            response['message'] ?? "Remark added successfully",
             textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.white70, fontSize: 15),
+            style: GoogleFonts.plusJakartaSans(color: Colors.white, fontSize: 14),
           ),
-          backgroundColor: Theme.of(context).colorScheme.surfaceContainerHigh,
+          backgroundColor: AppColors.surfaceContainerHigh,
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).clearSnackBars();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            response['message'] ?? "Error occurred while posting remark",
+            textAlign: TextAlign.center,
+            style: GoogleFonts.plusJakartaSans(color: Colors.white, fontSize: 14),
+          ),
+          backgroundColor: AppColors.surfaceContainerHigh,
         ),
       );
     }
@@ -170,50 +176,44 @@ class _ComplaintDetailsState extends State<ComplaintDetails> {
     if (response['success'] == "true" || response["success"] == true) {
       setState(() {
         widget.complaint['status'] = status;
+        hasUpdated = true;
       });
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            'Status updated Successfully',
+            'Status updated to: ${status.toUpperCase()}',
             textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.white70),
+            style: GoogleFonts.plusJakartaSans(color: Colors.white),
           ),
-          backgroundColor: Theme.of(context).colorScheme.surfaceContainerHigh,
+          backgroundColor: AppColors.surfaceContainerHigh,
         ),
       );
-      setState(() {
-        hasUpdated = true;
-      });
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Text(
-            'Error Occurred',
+            response['message'] ?? 'Error occurred updating status',
             textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.white70),
+            style: GoogleFonts.plusJakartaSans(color: Colors.white),
           ),
-          backgroundColor: AppSeeds.bgLight,
+          backgroundColor: AppColors.surfaceContainerHigh,
         ),
       );
     }
     debugPrint(response.toString());
-    debugPrint('Down Voted Successfully');
   }
 
   void checkVoteStatus() {
-    final List<dynamic> upVotes =
-        widget.complaint['upvotes'] as List<dynamic>? ?? [];
-    final List<dynamic> downVotes =
-        widget.complaint['downvotes'] as List<dynamic>? ?? [];
-    final userId = user?['id'];
+    final List<dynamic> upVotes = widget.complaint['upvotes'] as List<dynamic>? ?? [];
+    final List<dynamic> downVotes = widget.complaint['downvotes'] as List<dynamic>? ?? [];
+    final userId = user?['id'] ?? user?['_id'];
     setState(() {
       isUpvoted = upVotes.contains(userId);
       isDownvoted = downVotes.contains(userId);
+      upvoteCount = upVotes.length;
+      downvoteCount = downVotes.length;
       isCheckVotesLoading = false;
     });
-    debugPrint('Votes printed');
-    debugPrint(upVotes.toString());
-    debugPrint(downVotes.toString());
   }
 
   Future<void> handleUpVote() async {
@@ -229,36 +229,46 @@ class _ComplaintDetailsState extends State<ComplaintDetails> {
     if (response['message'] == "Vote updated") {
       setState(() {
         votes = response;
-        isUpvoted = true;
-        isDownvoted = false;
+        isUpvoted = !isUpvoted;
+        if (isUpvoted) {
+          isDownvoted = false;
+        }
+        if (response['upvotes'] != null) {
+          upvoteCount = response['upvotes'] is int
+              ? response['upvotes']
+              : int.tryParse(response['upvotes'].toString()) ?? upvoteCount;
+        }
+        if (response['downvotes'] != null) {
+          downvoteCount = response['downvotes'] is int
+              ? response['downvotes']
+              : int.tryParse(response['downvotes'].toString()) ?? downvoteCount;
+        }
         hasUpdated = true;
       });
       ScaffoldMessenger.of(context).clearSnackBars();
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Text(
-            'Up Vote Registered Successfully',
+            isUpvoted ? 'Upvote registered' : 'Upvote removed',
             textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.white70),
+            style: GoogleFonts.plusJakartaSans(color: Colors.white),
           ),
-          backgroundColor: AppSeeds.bgLight,
+          backgroundColor: AppColors.surfaceContainerHigh,
         ),
       );
-      debugPrint('UpVoted Successfully');
     } else {
       ScaffoldMessenger.of(context).clearSnackBars();
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Text(
+            response['message'] ?? 'Error occurred voting',
             textAlign: TextAlign.center,
-            'Error Occurred',
-            style: TextStyle(color: Colors.white70),
+            style: GoogleFonts.plusJakartaSans(color: Colors.white),
           ),
-          backgroundColor: AppSeeds.bgLight,
+          backgroundColor: AppColors.surfaceContainerHigh,
         ),
       );
     }
-    debugPrint(response.toString());
   }
 
   Future<void> handleDownVote() async {
@@ -274,37 +284,46 @@ class _ComplaintDetailsState extends State<ComplaintDetails> {
     if (response['message'] == "Vote updated") {
       setState(() {
         votes = response;
-        isDownvoted = true;
-        isUpvoted = false;
+        isDownvoted = !isDownvoted;
+        if (isDownvoted) {
+          isUpvoted = false;
+        }
+        if (response['upvotes'] != null) {
+          upvoteCount = response['upvotes'] is int
+              ? response['upvotes']
+              : int.tryParse(response['upvotes'].toString()) ?? upvoteCount;
+        }
+        if (response['downvotes'] != null) {
+          downvoteCount = response['downvotes'] is int
+              ? response['downvotes']
+              : int.tryParse(response['downvotes'].toString()) ?? downvoteCount;
+        }
         hasUpdated = true;
       });
-
       ScaffoldMessenger.of(context).clearSnackBars();
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Text(
-            'Down Vote Registered Successfully',
+            isDownvoted ? 'Downvote registered' : 'Downvote removed',
             textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.white70),
+            style: GoogleFonts.plusJakartaSans(color: Colors.white),
           ),
-          backgroundColor: AppSeeds.bgLight,
+          backgroundColor: AppColors.surfaceContainerHigh,
         ),
       );
-      debugPrint('Down Voted Successfully');
     } else {
       ScaffoldMessenger.of(context).clearSnackBars();
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Text(
-            'Error Occurred',
+            response['message'] ?? 'Error occurred voting',
             textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.white70),
+            style: GoogleFonts.plusJakartaSans(color: Colors.white),
           ),
-          backgroundColor: AppSeeds.bgLight,
+          backgroundColor: AppColors.surfaceContainerHigh,
         ),
       );
     }
-    debugPrint(response.toString());
   }
 
   String toUpperCamelCase(String text) {
@@ -318,52 +337,16 @@ class _ComplaintDetailsState extends State<ComplaintDetails> {
         .join(' ');
   }
 
-  Future<double> _getNetworkImageRatio(String url) async {
-    final image = Image.network(url);
-    final completer = Completer<ImageInfo>();
-
-    image.image
-        .resolve(const ImageConfiguration())
-        .addListener(
-          ImageStreamListener((ImageInfo info, bool _) {
-            completer.complete(info);
-          }),
-        );
-
-    final imageInfo = await completer.future;
-    return imageInfo.image.width / imageInfo.image.height;
-  }
-
   @override
   Widget build(BuildContext context) {
-    // ignore: unused_element
-    Widget _statusBadge(String text) {
-      return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.5),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Text(
-          text,
-          textAlign: TextAlign.center,
-          style: const TextStyle(fontSize: 16),
-        ),
-      );
-    }
-
-    Widget _priorityBadge(String text) {
-      return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.5),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Text(text, style: const TextStyle(fontSize: 16)),
-      );
-    }
+    final isPrivate = widget.complaint['type']?.toString().toLowerCase() == 'private';
+    final isAdmin = user?['role'] == 'admin';
+    final isCreator = widget.complaint['createdBy']?['email'] == user?['email'];
+    final canDelete = isAdmin || isCreator;
+    final rawId = widget.complaint['_id']?.toString() ?? '000000';
+    final ticketId = isPrivate
+        ? (rawId.length >= 6 ? '#PRV-${rawId.substring(rawId.length - 6).toUpperCase()}' : '#PRV-$rawId')
+        : (rawId.length >= 6 ? '#CMP-${rawId.substring(rawId.length - 6).toUpperCase()}' : '#CMP-$rawId');
 
     return PopScope(
       canPop: false,
@@ -373,330 +356,146 @@ class _ComplaintDetailsState extends State<ComplaintDetails> {
         }
       },
       child: Scaffold(
-        appBar: AppBar(
-          title: Text(
-            widget.complaint['title'],
-            style: TextStyle(fontWeight: FontWeight.w500),
-          ),
+        backgroundColor: AppColors.surface,
+        appBar: ComplaintAppBar(
+          ticketId: ticketId,
+          userName: user?['name']?.toString() ?? 'Admin',
+          canDelete: canDelete,
+          onDelete: () {
+            if (isAdmin) {
+              _deleteComplaint();
+            } else {
+              _deleteUserComplaint();
+            }
+          },
+          onBack: () => Navigator.pop(context, hasUpdated),
         ),
         body: Stack(
           children: [
-            SingleChildScrollView(
-              child: SafeArea(
-                child: Container(
-                  padding: EdgeInsets.all(15),
-                  alignment: Alignment.topLeft,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      //descriptions
-                      Container(
-                        alignment: Alignment.topLeft,
-                        child: Text(
-                          widget.complaint['description'],
-                          style: Theme.of(
-                            context,
-                          ).textTheme.bodyMedium!.copyWith(fontSize: 18),
-                        ),
-                      ),
-                      SizedBox(height: 10),
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  children: [
-                                    if (user?['role'] == "admin")
-                                      StatusBadgeMenu(
-                                        status: toUpperCamelCase(
-                                          widget.complaint['status'],
-                                        ),
-                                        onStatusChanged: (value) {
-                                          _changeStatus(value);
-                                        },
-                                      )
-                                    else
-                                      _statusBadge(
-                                        toUpperCamelCase(
-                                          widget.complaint['status'],
-                                        ),
-                                      ),
-                                    SizedBox(width: 6),
-                                    _priorityBadge(
-                                      toUpperCamelCase(
-                                        "Block : ${widget.complaint['createdBy']['hostelBlock'] ?? "Undefined"}",
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                if (widget.complaint['type'] == "private") ...[
-                                  Row(
-                                    children: [
-                                      Padding(
-                                        padding: const EdgeInsets.symmetric(
-                                          vertical: 4,
-                                        ),
-                                        child: Icon(
-                                          Icons.lock_outline,
-                                          color: Theme.of(
-                                            context,
-                                          ).colorScheme.onSurface,
-                                          size: 23,
-                                        ),
-                                      ),
-                                      SizedBox(width: 3),
-                                      Padding(
-                                        padding: const EdgeInsets.only(
-                                          top: 4,
-                                          right: 3,
-                                        ),
-                                        child: Text(
-                                          'Private',
-                                          style: TextStyle(
-                                            fontSize: 18,
-                                            fontWeight: FontWeight.w500,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ],
-                            ),
-                          ),
-                          SizedBox(width: 10),
-
-                          //badges
-                        ],
-                      ),
-                      if (widget.complaint['images'].length != 0) ...[
-                        SizedBox(height: 20),
-                        Container(
-                          decoration: BoxDecoration(
-                            border: Border.all(
-                              width: 1,
-                              color: Theme.of(
-                                context,
-                              ).colorScheme.primary.withValues(alpha: 0.4),
-                            ),
-                          ),
-                          child: FutureBuilder(
-                            future: _getNetworkImageRatio(
-                              widget.complaint['images'][0],
-                            ),
-                            builder: (context, snapshot) {
-                              if (!snapshot.hasData) {
-                                return const SizedBox(
-                                  height: 200,
-                                  child: Center(
-                                    child: CircularProgressIndicator(),
-                                  ),
-                                );
-                              }
-                              return AspectRatio(
-                                aspectRatio: snapshot.data!,
-                                child: Image.network(
-                                  widget.complaint['images'][0],
-                                  fit: BoxFit.contain,
-                                ),
-                              );
-                            },
-                          ),
-                        ),
-                      ],
-                      SizedBox(height: 20),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.start,
-                        children: [
-                          //reported by
-                          Text(
-                            'Reported By : ',
-
-                            style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                          SizedBox(width: 10),
-                          Icon(
-                            Icons.person,
-                            size: 24,
-                            color: Theme.of(context).colorScheme.onSurface,
-                          ),
-                          SizedBox(width: 3),
-                          Text(
-                            widget.complaint['createdBy']['name'],
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
+            (isAdminLoading || isCheckVotesLoading)
+                ? const Center(
+                    child: CircularProgressIndicator(color: AppColors.primary),
+                  )
+                : isPrivate
+                    ? PrivateComplaintView(
+                        complaint: widget.complaint,
+                        user: user,
+                        remarksController: _remarksController,
+                        onStatusChanged: _changeStatus,
+                        onPostRemark: () => patchRemarks(_remarksController.text, widget.complaint['_id']),
+                      )
+                    : PublicComplaintView(
+                        complaint: widget.complaint,
+                        user: user,
+                        isUpvoted: isUpvoted,
+                        isDownvoted: isDownvoted,
+                        upvoteCount: upvoteCount,
+                        downvoteCount: downvoteCount,
+                        isVotingLoading: isLoading,
+                        remarksController: _remarksController,
+                        onUpVote: handleUpVote,
+                        onDownVote: handleDownVote,
+                        onStatusChanged: _changeStatus,
+                        onPostRemark: () => patchRemarks(_remarksController.text, widget.complaint['_id']),
                       ),
 
-                      widget.complaint['adminRemarks'].toString().isNotEmpty
-                          ? Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                SizedBox(height: 20),
-                                Text(
-                                  'Admin Remarks :',
-                                  style: TextStyle(
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                                SizedBox(height: 5),
-                                Container(
-                                  alignment: Alignment.topLeft,
-                                  child: Text(
-                                    widget.complaint['adminRemarks'],
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .bodyMedium!
-                                        .copyWith(fontSize: 18),
-                                  ),
-                                ),
-                              ],
-                            )
-                          : SizedBox(),
-                      SizedBox(height: 20),
-                      //admin side vote counts
-                      user?['role'] == "admin" &&
-                              widget.complaint['type'] != "private"
-                          ? Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              crossAxisAlignment: CrossAxisAlignment.center,
-                              children: [
-                                Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceEvenly,
-                                  children: [
-                                    VoteCount(
-                                      title: 'Up Votes:',
-                                      votes: widget.complaint['upvotes'],
-                                    ),
-                                    SizedBox(width: 10),
-                                    VoteCount(
-                                      title: 'Down Votes :',
-                                      votes: widget.complaint['downvotes'],
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            )
-                          : widget.complaint['type'] == "private"
-                          ? SizedBox()
-                          : //cast vote buttons
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                UpVoteButton(
-                                  isUpvoted: isUpvoted,
-                                  onTap: handleUpVote,
-                                ),
-                                SizedBox(width: 10),
-
-                                DownVoteButton(
-                                  isDownVoted: isDownvoted,
-                                  onTap: handleDownVote,
-                                ),
-                              ],
-                            ),
-                      SizedBox(height: 10),
-                      user?['role'] == "admin"
-                          ? Column(
-                              children: [
-                                widget.complaint['adminRemarks']
-                                        .toString()
-                                        .isNotEmpty
-                                    ? SizedBox()
-                                    : Column(
-                                        children: [
-                                          TextField(
-                                            controller: _remarksController,
-                                            maxLength: 200,
-                                            maxLines: null,
-                                            keyboardType:
-                                                TextInputType.multiline,
-                                            textInputAction:
-                                                TextInputAction.newline,
-                                            decoration: const InputDecoration(
-                                              labelText: 'Admin Remarks',
-
-                                              alignLabelWithHint: true,
-                                            ),
-                                          ),
-                                          SizedBox(height: 10),
-                                          Row(
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.spaceBetween,
-                                            children: [
-                                              SizedBox(),
-                                              ElevatedButton(
-                                                onPressed: () {
-                                                  patchRemarks(
-                                                    _remarksController.text,
-                                                    widget.complaint['_id'],
-                                                  );
-                                                },
-                                                child: Text('Post Remarks'),
-                                              ),
-                                            ],
-                                          ),
-                                        ],
-                                      ),
-                              ],
-                            )
-                          : SizedBox(),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-            if (isLoading || isAdminLoading || isCheckVotesLoading)
+            // In-flight operation loading indicator overlay
+            if (isLoading)
               Container(
-                color: Colors.black54,
-                child: const Center(child: CircularProgressIndicator()),
+                color: Colors.black.withValues(alpha: 0.5),
+                child: const Center(
+                  child: CircularProgressIndicator(color: AppColors.primary),
+                ),
               ),
           ],
         ),
 
-        bottomNavigationBar:
-            !isAdminLoading && user?['role'] == "admin" ||
-                widget.complaint['createdBy']['email'] == user?['email']
-            ? Padding(
-                padding: EdgeInsets.symmetric(vertical: 22, horizontal: 10),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: ElevatedButton(
-                        onPressed: () async {
-                          final response = await showDialog(
-                            context: context,
-                            builder: (context) => DeleteDialog(
-                              title: "Delete Complaint",
-                              message:
-                                  "Are you sure you want to delete this complaint",
-                            ),
-                          );
-                          if (response == true) {
-                            user?['role'] == "admin"
-                                ? _deleteComplaint()
-                                : _deleteUserComplaint();
-                          }
-                        },
-                        child: const Text('Delete'),
-                      ),
+        // Sticky Bottom Administrative Dock for Private Tickets
+        bottomNavigationBar: (isPrivate && isAdmin)
+            ? Container(
+                decoration: BoxDecoration(
+                  color: AppColors.surface.withValues(alpha: 0.95),
+                  border: Border(
+                    top: BorderSide(
+                      color: AppColors.outlineVariant.withValues(alpha: 0.3),
+                      width: 0.5,
+                    ),
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.4),
+                      blurRadius: 20,
+                      offset: const Offset(0, -4),
                     ),
                   ],
                 ),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                child: SafeArea(
+                  top: false,
+                  child: Row(
+                    children: [
+                      // Reopen Ticket Button
+                      Expanded(
+                        child: SizedBox(
+                          height: 48,
+                          child: ElevatedButton.icon(
+                            onPressed: () => _changeStatus('pending'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.surfaceContainerHigh,
+                              foregroundColor: AppColors.error,
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                side: BorderSide(
+                                  color: AppColors.error.withValues(alpha: 0.3),
+                                ),
+                              ),
+                            ),
+                            icon: const Icon(Icons.replay, size: 18, color: AppColors.error),
+                            label: Text(
+                              'Reopen Ticket',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.error,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+
+                      // Mark Resolved Button
+                      Expanded(
+                        child: SizedBox(
+                          height: 48,
+                          child: ElevatedButton.icon(
+                            onPressed: () => _changeStatus('resolved'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.primaryAccent,
+                              foregroundColor: Colors.white,
+                              elevation: 2,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            icon: const Icon(Icons.task_alt, size: 18, color: Colors.white),
+                            label: Text(
+                              'Mark Resolved',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               )
-            : SizedBox(),
+            : null,
       ),
     );
   }

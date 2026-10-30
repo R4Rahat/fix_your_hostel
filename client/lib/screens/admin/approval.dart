@@ -1,6 +1,8 @@
+import 'package:client/screens/admin/approval_components/approval_components.dart';
 import 'package:client/screens/dialog_box.dart';
 import 'package:client/screens/hosteller/widgets/progress_indicator.dart';
 import 'package:client/services/user.dart';
+import 'package:client/theme/app_colors.dart';
 import 'package:flutter/material.dart';
 
 class Approval extends StatefulWidget {
@@ -12,14 +14,23 @@ class Approval extends StatefulWidget {
 
 class _ApprovalState extends State<Approval> {
   bool isUserLoading = true;
-  // Mock data: In a real app, this would come from Firebase or an API
+  List<Map<String, dynamic>> users = [];
+
+  final TextEditingController _searchController = TextEditingController();
+  String _selectedFilter = 'All';
+
   @override
   void initState() {
     super.initState();
     fetchUsers();
   }
 
-  List<Map<String, dynamic>> users = [];
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
   void fetchUsers() async {
     UserApi api = UserApi();
     final response = await api.getAllUsers();
@@ -95,160 +106,144 @@ class _ApprovalState extends State<Approval> {
     }
   }
 
+  List<String> get _availableFilters {
+    final blocks = <String>{};
+    for (final u in users) {
+      final block = u['hostelBlock']?.toString();
+      if (block != null && block.trim().isNotEmpty) {
+        blocks.add(block.trim());
+      }
+    }
+    return ['All', ...blocks];
+  }
+
+  Map<String, int> get _filterCounts {
+    final counts = <String, int>{'All': users.length};
+    for (final u in users) {
+      final block = u['hostelBlock']?.toString()?.trim();
+      if (block != null && block.isNotEmpty) {
+        counts[block] = (counts[block] ?? 0) + 1;
+      }
+    }
+    return counts;
+  }
+
+  List<Map<String, dynamic>> get _filteredUsers {
+    return users.where((student) {
+      final query = _searchController.text.trim().toLowerCase();
+      final name = student['name']?.toString().toLowerCase() ?? '';
+      final email = student['email']?.toString().toLowerCase() ?? '';
+      final roll = student['rollno']?.toString().toLowerCase() ?? '';
+      final block = student['hostelBlock']?.toString().toLowerCase() ?? '';
+      final room = student['roomNumber']?.toString().toLowerCase() ?? '';
+
+      final matchesSearch = query.isEmpty ||
+          name.contains(query) ||
+          email.contains(query) ||
+          roll.contains(query) ||
+          block.contains(query) ||
+          room.contains(query);
+
+      if (!matchesSearch) return false;
+
+      if (_selectedFilter == 'All') return true;
+      final studentBlock = student['hostelBlock']?.toString()?.trim() ?? '';
+      return studentBlock == _selectedFilter;
+    }).toList();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Approve Requests'), centerTitle: true),
+      backgroundColor: AppColors.surface,
+      appBar: ApprovalAppBar(
+        onRefresh: () {
+          setState(() {
+            isUserLoading = true;
+          });
+          fetchUsers();
+        },
+      ),
       body: isUserLoading
-          ? ProgressIndicatoring()
-          : users.isEmpty
-          ? const Center(child: Text("No pending requests"))
-          : ListView.builder(
-              itemCount: users.length,
-              itemBuilder: (context, index) {
-                final student = users[index];
-
-                return Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 8,
-                  ),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.surface,
-                      borderRadius: BorderRadius.circular(16),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black12,
-                          blurRadius: 6,
-                          offset: Offset(0, 3),
-                        ),
-                      ],
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          /// TOP ROW
-                          Row(
-                            children: [
-                              /// Name + email
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      student['name'],
-                                      style: const TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 3),
-                                    Text(
-                                      student['email'],
-                                      style: TextStyle(
-                                        color: Colors.grey.shade600,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-
-                          const SizedBox(height: 12),
-
-                          /// DETAILS
-                          Row(
-                            children: [
-                              const Icon(
-                                Icons.badge,
-                                size: 18,
-                                color: Colors.white70,
-                              ),
-                              const SizedBox(width: 6),
-                              Text("Roll No: ${student['rollno'] ?? "N/A"}"),
-                            ],
-                          ),
-
-                          const SizedBox(height: 6),
-
-                          Row(
-                            children: [
-                              const Icon(
-                                Icons.apartment,
-                                size: 18,
-                                color: Colors.white70,
-                              ),
-                              const SizedBox(width: 6),
-                              Text("Block: ${student['hostelBlock']}"),
-                            ],
-                          ),
-
-                          const SizedBox(height: 6),
-
-                          Row(
-                            children: [
-                              const Icon(
-                                Icons.meeting_room,
-                                size: 18,
-                                color: Colors.white70,
-                              ),
-                              const SizedBox(width: 6),
-                              Text("Room: ${student['roomNumber']}"),
-                            ],
-                          ),
-
-                          const SizedBox(height: 16),
-
-                          /// ACTION BUTTONS
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.end,
-                            children: [
-                              /// Reject
-                              OutlinedButton.icon(
-                                onPressed: () {
-                                  deleteUser(student['_id']);
-                                },
-                                icon: const Icon(
-                                  Icons.close,
-                                  color: Colors.red,
-                                ),
-                                label: const Text(
-                                  "Reject",
-                                  style: TextStyle(color: Colors.red),
-                                ),
-                              ),
-
-                              const SizedBox(width: 10),
-
-                              /// Approve
-                              ElevatedButton.icon(
-                                onPressed: () {
-                                  approveUser(student['_id']);
-                                },
-                                icon: const Icon(
-                                  Icons.check,
-                                  color: Colors.white,
-                                ),
-                                label: const Text(
-                                  "Approve",
-                                  style: TextStyle(color: Colors.white),
-                                ),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.green,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                );
+          ? const Center(child: ProgressIndicatoring())
+          : RefreshIndicator(
+              color: AppColors.primary,
+              backgroundColor: AppColors.surfaceContainer,
+              onRefresh: () async {
+                fetchUsers();
               },
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(
+                  parent: BouncingScrollPhysics(),
+                ),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 16,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Queue Operational Strip
+                    ApprovalQueueBanner(
+                      pendingCount: users.length,
+                      subtitle: 'Hostel Block Intake & Verification',
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Search & Filter Controls
+                    ApprovalSearchAndFilter(
+                      searchController: _searchController,
+                      onSearchChanged: (val) {
+                        setState(() {});
+                      },
+                      selectedFilter: _selectedFilter,
+                      availableFilters: _availableFilters,
+                      filterCounts: _filterCounts,
+                      onFilterSelected: (filter) {
+                        setState(() {
+                          _selectedFilter = filter;
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Student Cards Stack or Empty State
+                    if (_filteredUsers.isEmpty)
+                      ApprovalEmptyState(
+                        isFiltered:
+                            users.isNotEmpty && _filteredUsers.isEmpty,
+                        onRefresh: () {
+                          setState(() {
+                            isUserLoading = true;
+                          });
+                          fetchUsers();
+                        },
+                      )
+                    else
+                      ListView.builder(
+                        itemCount: _filteredUsers.length,
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemBuilder: (context, index) {
+                          final student = _filteredUsers[index];
+                          return StudentApprovalCard(
+                            key: ValueKey(
+                              student['_id'] ?? index.toString(),
+                            ),
+                            student: student,
+                            onApprove: () {
+                              approveUser(student['_id']);
+                            },
+                            onReject: () {
+                              deleteUser(student['_id']);
+                            },
+                          );
+                        },
+                      ),
+                    const SizedBox(height: 24),
+                  ],
+                ),
+              ),
             ),
     );
   }
